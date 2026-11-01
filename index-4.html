@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Naukri Radar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow column. Profile controls on top, ranked job rows below, each row says whether you qualify. */
+:root {
+  --bg: #edf0f2;
+  --surface: #ffffff;
+  --ink: #101820;
+  --muted: #55636e;
+  --line: #d3dae0;
+  --accent: #0e7c66;
+  --accent-ink: #ffffff;
+  --warn: #9a5b00;
+  --warn-bg: #fbefd8;
+  --bad: #a8261c;
+  --bad-bg: #fbe4e1;
+  --good-bg: #dcf3ec;
+  --soft-bg: #e4e9ed;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1317; --surface: #151d23; --ink: #e6ecef; --muted: #98a7b1; --line: #28343c;
+    --accent: #4fd1b0; --accent-ink: #06201a; --warn: #f0b95a; --warn-bg: #3a2c10;
+    --bad: #ff8d84; --bad-bg: #3d1b18; --good-bg: #12352c; --soft-bg: #1c262d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1317; --surface: #151d23; --ink: #e6ecef; --muted: #98a7b1; --line: #28343c;
+  --accent: #4fd1b0; --accent-ink: #06201a; --warn: #f0b95a; --warn-bg: #3a2c10;
+  --bad: #ff8d84; --bad-bg: #3d1b18; --good-bg: #12352c; --soft-bg: #1c262d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { color-scheme: light; }
+body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; }
+header { display: flex; flex-direction: column; gap: 6px; }
+.today { font-family: var(--f-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-size: clamp(30px, 8vw, 42px); line-height: 1.05; margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+.sub { margin: 0; color: var(--muted); max-width: 52ch; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+label, .lbl { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+select, input[type="number"] { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; width: 100%; min-height: 44px; }
+select:focus-visible, input:focus-visible, .seg input:focus-visible + span, .check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row2 { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+.seg label { margin: 0; text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: block; padding: 9px 14px; min-height: 40px; }
+.seg input:checked + span { background: var(--accent); color: var(--accent-ink); }
+.check { display: flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.privacy { margin: 0; font-size: 13px; color: var(--muted); }
+
+.summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; align-items: baseline; }
+.summary strong { font-family: var(--f-display); font-size: 20px; }
+.summary span { color: var(--muted); font-size: 14px; }
+
+.list { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.job { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; padding: 16px; border-top: 1px solid var(--line); }
+.job:first-child { border-top: 0; }
+.job.dim { opacity: .62; }
+.main { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.title { font-family: var(--f-display); font-weight: 600; font-size: 18px; line-height: 1.2; margin: 0; text-wrap: balance; }
+.org { color: var(--muted); font-size: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12.5px; background: var(--soft-bg); border-radius: 6px; padding: 3px 8px; }
+.elig { font-size: 14px; font-weight: 600; }
+.elig.ok { color: var(--accent); }
+.elig.no { color: var(--bad); }
+.elig.chk { color: var(--warn); }
+.note { font-size: 13px; color: var(--muted); }
+.side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; text-align: right; }
+.date { font-family: var(--f-mono); font-size: 18px; }
+.datelbl { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.pill { font-size: 12.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.pill.open { background: var(--good-bg); color: var(--accent); }
+.pill.urgent { background: var(--warn-bg); color: var(--warn); }
+.pill.soon, .pill.awaited, .pill.hiring { background: var(--soft-bg); color: var(--ink); }
+.pill.closed { background: var(--bad-bg); color: var(--bad); }
+.src { font-size: 13px; color: var(--accent); }
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); }
+footer { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 8px; }
+footer p { margin: 0; max-width: 62ch; }
+footer a { color: var(--accent); }
+@media (max-width: 520px) {
+  .job { grid-template-columns: minmax(0, 1fr); }
+  .side { flex-direction: row; align-items: center; justify-content: space-between; text-align: left; flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: no-preference) { .job { transition: opacity .15s; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="today" id="today"></div>
+    <h1>Naukri Radar</h1>
+    <p class="sub">Apni qualification, umar aur category daalo. Sarkari aur private jobs mein se wahi dikhengi jinke liye aap eligible ho.</p>
+  </header>
+
+  <section class="panel" aria-label="Aapki profile">
+    <div class="fields">
+      <div class="field">
+        <label for="qual">Qualification</label>
+        <select id="qual">
+          <option value="1">10th pass</option>
+          <option value="2">12th pass</option>
+          <option value="3" selected>Graduate</option>
+          <option value="4">Post-graduate</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="age">Umar (saal)</label>
+        <input id="age" type="number" inputmode="numeric" min="14" max="60" value="24">
+      </div>
+      <div class="field">
+        <label for="cat">Category</label>
+        <select id="cat">
+          <option value="0" selected>General</option>
+          <option value="0e">EWS</option>
+          <option value="3">OBC (non-creamy layer)</option>
+          <option value="5">SC / ST</option>
+        </select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="seg" role="radiogroup" aria-label="Job type">
+        <label><input type="radio" name="sector" value="all" checked><span>Sab</span></label>
+        <label><input type="radio" name="sector" value="govt"><span>Sarkari</span></label>
+        <label><input type="radio" name="sector" value="private"><span>Private</span></label>
+      </div>
+      <label class="check"><input type="checkbox" id="showAll"> Eligible nahi wali bhi dikhao</label>
+    </div>
+    <p class="privacy">Ye profile sirf aapke browser mein rehti hai. Abhi example values bhari hain, apni daalo.</p>
+  </section>
+
+  <div class="summary"><strong id="count"></strong><span id="openCount"></span></div>
+  <div class="list" id="list"></div>
+
+  <footer>
+    <p>Umar ki chhoot (OBC +3, SC/ST +5) central sarkari bharti ke general niyam se lagayi gayi hai. State ki bharti, PwBD aur ex-servicemen ke niyam alag ho sakte hain. Apply karne se pehle official notification zaroor dekho.</p>
+    <p>Data 1 Nov 2026 ko coaching aur job sites ke calendar se liya gaya. "Reported" ya "Date check karo" wali entries official site se confirm karna baaki hai.</p>
+  </footer>
+</div>
+
+<script>
+var JOBS = [];
+var QUAL = { 1: "10th", 2: "12th", 3: "Graduate", 4: "Post-graduate" };
+var FALLBACK = [
+  { id: 1, title: "RRB NTPC Graduate (CEN 06/2026)", org: "Railway Recruitment Boards", sector: "govt", kind: "live",
+    posts: "3,548 posts", qual: 3, minAge: 18, maxGen: 33, relax: true, open: "2026-10-08", last: "2026-11-06",
+    note: "Umar 1 Jan 2027 ke hisaab se. Fee ki last date 8 Nov.", status: "Confirmed", link: "https://rrbapply.gov.in", src: "rrbapply.gov.in" },
+  { id: 2, title: "RRB NTPC Undergraduate (CEN 07/2026)", org: "Railway Recruitment Boards", sector: "govt", kind: "live",
+    posts: "1,688 clerk posts", qual: 2, minAge: null, maxGen: null, relax: true, open: "2026-10-15", last: "2026-11-13",
+    note: "Fee ki last date 15 Nov. Umar ki limit notification mein dekho.", status: "Confirmed", link: "https://rrbapply.gov.in", src: "rrbapply.gov.in" },
+  { id: 3, title: "APPSC Group 2 (Notification 37/2026)", org: "Andhra Pradesh Public Service Commission", sector: "govt", kind: "live",
+    posts: "686 posts (reported)", qual: null, minAge: null, maxGen: null, relax: true, open: "2026-11-10", last: "2026-11-30",
+    note: "Dates news reports se hain. Qualification aur umar notification PDF mein dekho.", status: "Reported", link: "https://psc.ap.gov.in", src: "psc.ap.gov.in" },
+  { id: 4, title: "Engineer (Post Nos. 803 to 807)", org: "LPSC (ISRO)", sector: "govt", kind: "live",
+    posts: "5 posts", qual: null, minAge: null, maxGen: null, relax: true, open: null, last: "2026-12-05",
+    note: "PSU listing se. Eligibility official notice mein dekho.", status: "Listed", link: "https://truejobs.co.in/sarkari-jobs/psu", src: "truejobs.co.in" },
+  { id: 5, title: "UPSC NDA and NA (I) 2027", org: "Union Public Service Commission", sector: "govt", kind: "soon", when: "Dec 2026 ke shuru mein", lastText: "22 Dec (reported)",
+    posts: "", qual: 2, minAge: 16.5, maxGen: 19.5, relax: false,
+    note: "Notification November mein nahi aayegi.", status: "Expected", link: "https://upsc.gov.in", src: "upsc.gov.in" },
+  { id: 6, title: "UPSC CDS (I) 2027", org: "Union Public Service Commission", sector: "govt", kind: "soon", when: "Dec 2026 ke shuru mein", lastText: "22 Dec (reported)",
+    posts: "", qual: 3, minAge: 19, maxGen: 25, relax: false,
+    note: "Notification November mein nahi aayegi.", status: "Expected", link: "https://upsc.gov.in", src: "upsc.gov.in" },
+  { id: 7, title: "NABARD Grade A (Assistant Manager)", org: "NABARD", sector: "govt", kind: "awaited", when: "Nov 2026 mein expected",
+    posts: "", qual: null, minAge: null, maxGen: null, relax: true,
+    note: "24 Oct tak notification nahi aayi thi. Pichli baar 91 posts thi.", status: "Expected", link: "https://nabard.org", src: "nabard.org" },
+  { id: 8, title: "SSC GD Constable (2027 cycle)", org: "Staff Selection Commission", sector: "govt", kind: "awaited", when: "Nov 2026 (tentative)",
+    posts: "", qual: null, minAge: null, maxGen: null, relax: true,
+    note: "SSC apna calendar kai baar badal chuka hai.", status: "Tentative", link: "https://ssc.gov.in", src: "ssc.gov.in" },
+  { id: 9, title: "Graduate Engineering Trainee (ELP Batch 2026)", org: "Grasim", sector: "private", kind: "hiring", loc: "Maharashtra", posts: "",
+    qual: 3, minAge: null, maxGen: null, relax: false, note: "Exact degree aur last date listing mein dekho.", status: "Date not verified", link: "https://www.linkedin.com/company/apuzz", src: "Apuzz Jobs" },
+  { id: 10, title: "Test Engineer", org: "IDFC FIRST Bank", sector: "private", kind: "hiring", loc: "Chennai", posts: "",
+    qual: 3, minAge: null, maxGen: null, relax: false, note: "Freshers ke liye listed. Last date verify nahi hui.", status: "Date not verified", link: "https://www.linkedin.com/company/apuzz", src: "Apuzz Jobs" },
+  { id: 11, title: "Data Science Analyst", org: "Citi", sector: "private", kind: "hiring", loc: "Bengaluru", posts: "",
+    qual: 3, minAge: null, maxGen: null, relax: false, note: "Freshers aur early-career ke liye. Last date verify nahi hui.", status: "Date not verified", link: "https://www.linkedin.com/company/apuzz", src: "Apuzz Jobs" },
+  { id: 12, title: "GenAI Engineer", org: "Happiest Minds", sector: "private", kind: "hiring", loc: "Bengaluru", posts: "",
+    qual: 3, minAge: null, maxGen: null, relax: false, note: "Off-campus drive. Last date verify nahi hui.", status: "Date not verified", link: "https://www.enggwave.com", src: "EnggWave" },
+  { id: 13, title: "Graduate Engineer Trainee", org: "Nordex", sector: "private", kind: "hiring", loc: "Chennai", posts: "",
+    qual: 3, minAge: null, maxGen: null, relax: false, note: "Last date verify nahi hui.", status: "Date not verified", link: "https://www.enggwave.com", src: "EnggWave" },
+  { id: 14, title: "Software Engineering AMTS", org: "Salesforce", sector: "private", kind: "hiring", loc: "Hyderabad, Bengaluru", posts: "",
+    qual: 3, minAge: null, maxGen: null, relax: false, note: "Last date verify nahi hui.", status: "Date not verified", link: "https://www.enggwave.com", src: "EnggWave" },
+  { id: 15, title: "Graduate Engineer Trainee", org: "Technip Energies", sector: "private", kind: "hiring", loc: "Chennai", posts: "",
+    qual: 3, minAge: null, maxGen: null, relax: false, note: "Last date verify nahi hui.", status: "Date not verified", link: "https://www.enggwave.com", src: "EnggWave" },
+  { id: 16, title: "GET, Mechanical Engineering", org: "Sika", sector: "private", kind: "hiring", loc: "Bengaluru", posts: "",
+    qual: 3, minAge: null, maxGen: null, relax: false, note: "Fresh mechanical engineers ke liye. Last date verify nahi hui.", status: "Date not verified", link: "https://www.enggwave.com", src: "EnggWave" }
+];
+
+var $ = function (id) { return document.getElementById(id); };
+var now = new Date();
+var todayStr = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+function d(s) { var p = s.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function fmt(s) { return d(s).toLocaleDateString("en-IN", { day: "numeric", month: "short" }); }
+var t0 = d(todayStr);
+$("today").textContent = "Aaj " + t0.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+
+function profile() {
+  var catRaw = $("cat").value;
+  return {
+    qual: +$("qual").value,
+    age: parseFloat($("age").value),
+    bonus: parseInt(catRaw, 10) || 0,
+    catLabel: $("cat").options[$("cat").selectedIndex].text,
+    sector: document.querySelector('input[name="sector"]:checked').value,
+    showAll: $("showAll").checked
+  };
+}
+
+function evalJob(j, p) {
+  var state = j.kind, left = null;
+  if (j.kind === "live") {
+    if (j.open && todayStr < j.open) state = "soon";
+    else if (j.last && todayStr < j.last) { state = "open"; }
+    else if (j.last && todayStr === j.last) state = "open";
+    else state = "closed";
+    if (j.last) left = Math.round((d(j.last) - t0) / 86400000);
+  }
+  var maxAge = null, bits = [];
+  if (j.maxGen != null) maxAge = j.relax ? j.maxGen + p.bonus : j.maxGen;
+  var qualState = j.qual == null ? "unk" : (p.qual >= j.qual ? "ok" : "no");
+  var ageState = "unk";
+  if (j.minAge != null && isFinite(p.age)) ageState = (p.age >= j.minAge && p.age <= maxAge) ? "ok" : "no";
+  var verdict = "chk", msg = "Eligibility notification mein check karo";
+  if (qualState === "no") { verdict = "no"; msg = "Qualification kam hai (chahiye " + QUAL[j.qual] + ")"; }
+  else if (ageState === "no") {
+    verdict = "no";
+    msg = p.age > maxAge ? "Umar zyada hai (max " + maxAge + " saal)" : "Umar kam hai (min " + j.minAge + " saal)";
+  } else if (qualState === "ok" && ageState === "ok") { verdict = "ok"; msg = "Aap eligible ho"; }
+  else if (qualState === "ok" && j.sector === "private") { verdict = "chk"; msg = "Qualification match, umar ki limit listing mein dekho"; }
+  else if (qualState === "ok") { verdict = "chk"; msg = "Qualification match, umar notification mein dekho"; }
+  else if (ageState === "ok") { verdict = "chk"; msg = "Umar theek, qualification notification mein dekho"; }
+  return { state: state, left: left, maxAge: maxAge, verdict: verdict, msg: msg };
+}
+
+var ORDER = { open: 0, soon: 1, awaited: 2, hiring: 3, closed: 4 };
+
+function render() {
+  var p = profile();
+  try { localStorage.setItem("nr-profile", JSON.stringify({ q: $("qual").value, a: $("age").value, c: $("cat").value, s: p.sector, x: p.showAll })); } catch (e) {}
+  var rows = JOBS.filter(function (j) { return p.sector === "all" || j.sector === p.sector; })
+    .map(function (j) { return { j: j, e: evalJob(j, p) }; })
+    .filter(function (r) { return r.e.state !== "closed"; });
+  var eligibleRows = rows.filter(function (r) { return r.e.verdict !== "no"; });
+  var shown = p.showAll ? rows : eligibleRows;
+  shown.sort(function (a, b) {
+    if (a.e.verdict === "no" && b.e.verdict !== "no") return 1;
+    if (b.e.verdict === "no" && a.e.verdict !== "no") return -1;
+    if (ORDER[a.e.state] !== ORDER[b.e.state]) return ORDER[a.e.state] - ORDER[b.e.state];
+    return (a.j.last || "9999") < (b.j.last || "9999") ? -1 : 1;
+  });
+  var openNow = eligibleRows.filter(function (r) { return r.e.state === "open"; }).length;
+  $("count").textContent = eligibleRows.length + " jobs aapke liye";
+  $("openCount").textContent = openNow + " abhi apply ke liye khuli hain" + (rows.length - eligibleRows.length ? " · " + (rows.length - eligibleRows.length) + " eligible nahi" : "");
+  if (!shown.length) { $("list").innerHTML = '<div class="empty">Is profile ke liye abhi koi job nahi mili. Eligible nahi wali bhi dikhane ka option try karo.</div>'; return; }
+  $("list").innerHTML = shown.map(function (r) {
+    var j = r.j, e = r.e, chips = [];
+    chips.push(j.sector === "govt" ? "Sarkari" : "Private");
+    if (j.posts) chips.push(j.posts);
+    if (j.qual) chips.push(QUAL[j.qual] + " ya upar");
+    if (j.loc) chips.push(j.loc);
+    if (j.minAge != null) chips.push("Umar " + j.minAge + " se " + (e.maxAge != null ? e.maxAge : j.maxGen) + (j.relax && e.maxAge !== j.maxGen ? " (" + p.catLabel.split(" ")[0] + ")" : ""));
+    var pill, dateBlock;
+    if (e.state === "open") {
+      var urgent = e.left != null && e.left <= 5;
+      pill = '<span class="pill ' + (urgent ? "urgent" : "open") + '">' + (e.left === 0 ? "Aaj last date" : "Khuli · " + e.left + " din bache") + '</span>';
+      dateBlock = '<div><div class="datelbl">Last date</div><div class="date">' + fmt(j.last) + '</div></div>';
+    } else if (e.state === "soon") {
+      pill = '<span class="pill soon">Jaldi khulegi</span>';
+      dateBlock = '<div><div class="datelbl">' + (j.when ? "Notification" : "Khulegi") + '</div><div class="date" style="font-size:15px">' + (j.when || fmt(j.open)) + '</div></div>';
+    } else if (e.state === "awaited") {
+      pill = '<span class="pill awaited">Notification baaki</span>';
+      dateBlock = '<div><div class="datelbl">Expected</div><div class="date" style="font-size:15px">' + j.when + '</div></div>';
+    } else {
+      pill = '<span class="pill hiring">Hiring</span>';
+      dateBlock = '<div><div class="datelbl">Last date</div><div class="date" style="font-size:15px">Check karo</div></div>';
+    }
+    if (j.kind === "soon" && j.lastText) dateBlock = dateBlock.replace("</div></div>", '</div><div class="note">Last date: ' + j.lastText + '</div></div>');
+    return '<article class="job' + (e.verdict === "no" ? " dim" : "") + '">' +
+      '<div class="main"><h2 class="title">' + j.title + '</h2><div class="org">' + j.org + '</div>' +
+      '<div class="chips">' + chips.map(function (c) { return '<span class="chip">' + c + '</span>'; }).join("") + '</div>' +
+      '<div class="elig ' + e.verdict + '">' + e.msg + '</div>' +
+      '<div class="note">' + j.note + ' <a class="src" href="' + j.link + '" target="_blank" rel="noopener">' + j.src + ' ↗</a></div></div>' +
+      '<div class="side">' + pill + dateBlock + '</div></article>';
+  }).join("");
+}
+
+try {
+  var saved = JSON.parse(localStorage.getItem("nr-profile") || "null");
+  if (saved) {
+    $("qual").value = saved.q; $("age").value = saved.a; $("cat").value = saved.c; $("showAll").checked = !!saved.x;
+    var r = document.querySelector('input[name="sector"][value="' + saved.s + '"]'); if (r) r.checked = true;
+  }
+} catch (e) {}
+["qual", "age", "cat", "showAll"].forEach(function (id) { $(id).addEventListener("input", render); });
+document.querySelectorAll('input[name="sector"]').forEach(function (r) { r.addEventListener("change", render); });
+// jobs.json (scraper ka output) padho. Na mile to upar wali FALLBACK list dikhao.
+fetch("jobs.json", { cache: "no-store" })
+  .then(function (r) { if (!r.ok) throw new Error("no json"); return r.json(); })
+  .then(function (data) {
+    JOBS = Array.isArray(data) ? data : data.jobs;
+    if (data.updated) { $("today").textContent += " · data " + data.updated.replace("T", " "); }
+    render();
+  })
+  .catch(function () { JOBS = FALLBACK; render(); });
+</script>
+</body>
+</html>
+
