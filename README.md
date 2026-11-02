@@ -23,3 +23,13 @@ Roz auto-update (GitHub Actions):
 - Repo Settings > Actions > General > Workflow permissions: "Read and write" chuno.
 - Actions tab se "Update jobs.json" ko ek baar Run workflow karke test karo.
 - Render par Static Site isi repo se jodo. Har commit par site apne aap redeploy hogi.
+
+Gemini se eligibility padhwana (zaruri, warna umar/qualification bharose layak nahi):
+- Local: export GEMINI_API_KEY="apni_key"   (Termux mein bhi chalta hai), phir python scraper.py
+- Model ka naam badalna ho: export GEMINI_MODEL="naam"   (default gemini-3.8-flash)
+- Pehli baar chhote scale par chalao: scraper.py mein MAX_ITEMS_PER_SOURCE = 10 karo
+- Galti dhoondhni ho: export DEBUG_LLM=1 (API ka raw jawab dikhata hai)
+- Free tier ki limit lage to LLM_DELAY badhao: export LLM_DELAY=12
+- llm_cache.json: jo jobs ek baar padh li, unhe dobara Gemini ko nahi bhejta
+- GitHub Actions ke liye: repo Settings > Secrets and variables > Actions > New secret, naam GEMINI_API_KEY
+- API key kabhi code ya repo mein mat likho.
