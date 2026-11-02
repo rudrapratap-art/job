@@ -223,30 +223,45 @@ function profile() {
   };
 }
 
+function evalPost(po, j, p) {
+  var maxAge = po.maxAge != null ? (j.relax ? po.maxAge + p.bonus : po.maxAge) : null;
+  var qualState = po.qual == null ? "unk" : (p.qual >= po.qual ? "ok" : "no");
+  var ageState = "unk";
+  if (maxAge != null && isFinite(p.age)) {
+    ageState = (p.age <= maxAge && (po.minAge == null || p.age >= po.minAge)) ? "ok" : "no";
+  }
+  var verdict = "chk", msg = "Eligibility notification mein check karo";
+  var label = po.name ? po.name + ": " : "";
+  if (qualState === "no") { verdict = "no"; msg = label + "qualification kam hai (chahiye " + QUAL[po.qual] + ")"; }
+  else if (ageState === "no") {
+    verdict = "no";
+    msg = label + (p.age > maxAge ? "umar zyada hai (max " + maxAge + " saal)" : "umar kam hai (min " + po.minAge + " saal)");
+  } else if (qualState === "ok" && ageState === "ok") { verdict = "ok"; msg = label + "aap eligible ho"; }
+  else if (qualState === "ok") { verdict = "chk"; msg = label + "qualification match, umar notification mein dekho"; }
+  else if (ageState === "ok") { verdict = "chk"; msg = label + "umar theek, qualification notification mein dekho"; }
+  if (po.exp > 0 && verdict !== "no") { verdict = "chk"; msg = label + po.exp + " saal ka experience chahiye"; }
+  return { verdict: verdict, msg: msg, maxAge: maxAge, po: po };
+}
+
 function evalJob(j, p) {
   var state = j.kind, left = null;
   if (j.kind === "live") {
     if (j.open && todayStr < j.open) state = "soon";
-    else if (j.last && todayStr < j.last) { state = "open"; }
-    else if (j.last && todayStr === j.last) state = "open";
+    else if (j.last && todayStr <= j.last) { state = "open"; }
     else state = "closed";
     if (j.last) left = Math.round((d(j.last) - t0) / 86400000);
   }
-  var maxAge = null, bits = [];
-  if (j.maxGen != null) maxAge = j.relax ? j.maxGen + p.bonus : j.maxGen;
-  var qualState = j.qual == null ? "unk" : (p.qual >= j.qual ? "ok" : "no");
-  var ageState = "unk";
-  if (j.minAge != null && isFinite(p.age)) ageState = (p.age >= j.minAge && p.age <= maxAge) ? "ok" : "no";
-  var verdict = "chk", msg = "Eligibility notification mein check karo";
-  if (qualState === "no") { verdict = "no"; msg = "Qualification kam hai (chahiye " + QUAL[j.qual] + ")"; }
-  else if (ageState === "no") {
-    verdict = "no";
-    msg = p.age > maxAge ? "Umar zyada hai (max " + maxAge + " saal)" : "Umar kam hai (min " + j.minAge + " saal)";
-  } else if (qualState === "ok" && ageState === "ok") { verdict = "ok"; msg = "Aap eligible ho"; }
-  else if (qualState === "ok" && j.sector === "private") { verdict = "chk"; msg = "Qualification match, umar ki limit listing mein dekho"; }
-  else if (qualState === "ok") { verdict = "chk"; msg = "Qualification match, umar notification mein dekho"; }
-  else if (ageState === "ok") { verdict = "chk"; msg = "Umar theek, qualification notification mein dekho"; }
-  return { state: state, left: left, maxAge: maxAge, verdict: verdict, msg: msg };
+  var posts = (j.postList && j.postList.length) ? j.postList :
+    [{ name: "", qual: j.qual, minAge: j.minAge, maxAge: j.maxGen, exp: 0 }];
+  var RANK = { ok: 0, chk: 1, no: 2 }, best = null;
+  posts.forEach(function (po) {
+    var r = evalPost(po, j, p);
+    if (!best || RANK[r.verdict] < RANK[best.verdict]) best = r;
+  });
+  var msg = best.msg;
+  if (posts.length > 1 && best.verdict === "ok") msg += " (" + posts.length + " posts mein se)";
+  if (j.status === "AI-extracted" && best.verdict === "ok") msg += " · AI ne padha, notification se verify karo";
+  return { state: state, left: left, maxAge: best.maxAge, bp: best.po, verdict: best.verdict, msg: msg, nPosts: posts.length };
 }
 
 var ORDER = { open: 0, soon: 1, awaited: 2, hiring: 3, closed: 4 };
@@ -273,53 +288,12 @@ function render() {
     var j = r.j, e = r.e, chips = [];
     chips.push(j.sector === "govt" ? "Sarkari" : "Private");
     if (j.posts) chips.push(j.posts);
-    if (j.qual) chips.push(QUAL[j.qual] + " ya upar");
+    var bp = e.bp;
+    if (bp.qual) chips.push(QUAL[bp.qual] + " ya upar");
+    if (e.nPosts > 1) chips.push(e.nPosts + " alag posts");
     if (j.loc) chips.push(j.loc);
-    if (j.minAge != null) chips.push("Umar " + j.minAge + " se " + (e.maxAge != null ? e.maxAge : j.maxGen) + (j.relax && e.maxAge !== j.maxGen ? " (" + p.catLabel.split(" ")[0] + ")" : ""));
+    if (bp.maxAge != null) chips.push("Umar " + (bp.minAge != null ? bp.minAge + " se " : "max ") + e.maxAge + (j.relax && e.maxAge !== bp.maxAge ? " (" + p.catLabel.split(" ")[0] + ")" : ""));
     var pill, dateBlock;
     if (e.state === "open") {
       var urgent = e.left != null && e.left <= 5;
-      pill = '<span class="pill ' + (urgent ? "urgent" : "open") + '">' + (e.left === 0 ? "Aaj last date" : "Khuli · " + e.left + " din bache") + '</span>';
-      dateBlock = '<div><div class="datelbl">Last date</div><div class="date">' + fmt(j.last) + '</div></div>';
-    } else if (e.state === "soon") {
-      pill = '<span class="pill soon">Jaldi khulegi</span>';
-      dateBlock = '<div><div class="datelbl">' + (j.when ? "Notification" : "Khulegi") + '</div><div class="date" style="font-size:15px">' + (j.when || fmt(j.open)) + '</div></div>';
-    } else if (e.state === "awaited") {
-      pill = '<span class="pill awaited">Notification baaki</span>';
-      dateBlock = '<div><div class="datelbl">Expected</div><div class="date" style="font-size:15px">' + j.when + '</div></div>';
-    } else {
-      pill = '<span class="pill hiring">Hiring</span>';
-      dateBlock = '<div><div class="datelbl">Last date</div><div class="date" style="font-size:15px">Check karo</div></div>';
-    }
-    if (j.kind === "soon" && j.lastText) dateBlock = dateBlock.replace("</div></div>", '</div><div class="note">Last date: ' + j.lastText + '</div></div>');
-    return '<article class="job' + (e.verdict === "no" ? " dim" : "") + '">' +
-      '<div class="main"><h2 class="title">' + j.title + '</h2><div class="org">' + j.org + '</div>' +
-      '<div class="chips">' + chips.map(function (c) { return '<span class="chip">' + c + '</span>'; }).join("") + '</div>' +
-      '<div class="elig ' + e.verdict + '">' + e.msg + '</div>' +
-      '<div class="note">' + j.note + ' <a class="src" href="' + j.link + '" target="_blank" rel="noopener">' + j.src + ' ↗</a></div></div>' +
-      '<div class="side">' + pill + dateBlock + '</div></article>';
-  }).join("");
-}
-
-try {
-  var saved = JSON.parse(localStorage.getItem("nr-profile") || "null");
-  if (saved) {
-    $("qual").value = saved.q; $("age").value = saved.a; $("cat").value = saved.c; $("showAll").checked = !!saved.x;
-    var r = document.querySelector('input[name="sector"][value="' + saved.s + '"]'); if (r) r.checked = true;
-  }
-} catch (e) {}
-["qual", "age", "cat", "showAll"].forEach(function (id) { $(id).addEventListener("input", render); });
-document.querySelectorAll('input[name="sector"]').forEach(function (r) { r.addEventListener("change", render); });
-// jobs.json (scraper ka output) padho. Na mile to upar wali FALLBACK list dikhao.
-fetch("jobs.json", { cache: "no-store" })
-  .then(function (r) { if (!r.ok) throw new Error("no json"); return r.json(); })
-  .then(function (data) {
-    JOBS = Array.isArray(data) ? data : data.jobs;
-    if (data.updated) { $("today").textContent += " · data " + data.updated.replace("T", " "); }
-    render();
-  })
-  .catch(function () { JOBS = FALLBACK; render(); });
-</script>
-</body>
-</html>
-
+      pill = '<span class="pill ' + (urgent ? "urgent" 
