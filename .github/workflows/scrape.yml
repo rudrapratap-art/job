@@ -53,4 +53,10 @@ jobs:
           [ -f llm_cache.json ] && git add llm_cache.json || true
           git diff --cached --quiet && echo "Koi badlav nahi" && exit 0
           git commit -m "Update jobs.json"
-          git push
+          # Beech mein kisi ne repo badli ho to uske badlav lekar dobara try karo (conflict mein bot ki jobs.json jeetegi)
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin main && git push && exit 0
+            echo "push fail, dobara try ($i)"; sleep 5
+          done
+          exit 1
+          
