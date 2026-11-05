@@ -29,7 +29,7 @@ from bs4 import BeautifulSoup, NavigableString
 # ---------------------------------------------------------------- config
 USER_AGENT = "NaukriRadarBot/0.1 (personal project; contact: you@example.com)"
 DELAY_SECONDS = 2.0            # har request ke beech ruko
-MAX_ITEMS_PER_SOURCE = 3
+MAX_ITEMS_PER_SOURCE = 30
 FETCH_DETAIL_PAGES = True      # True: har job ka page khol kar details nikalo
 OUTPUT = Path("jobs.json")
 MANUAL = Path("manual.json")   # haath se daali hui entries (optional), isi format mein
