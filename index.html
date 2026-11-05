@@ -296,4 +296,47 @@ function render() {
     var pill, dateBlock;
     if (e.state === "open") {
       var urgent = e.left != null && e.left <= 5;
-      pill = '<span class="pill ' + (urgent ? "urgent" 
+      pill = '<span class="pill ' + (urgent ? "urgent" : "open") + '">' + (e.left === 0 ? "Aaj last date" : "Khuli · " + e.left + " din bache") + '</span>';
+      dateBlock = '<div><div class="datelbl">Last date</div><div class="date">' + fmt(j.last) + '</div></div>';
+    } else if (e.state === "soon") {
+      pill = '<span class="pill soon">Jaldi khulegi</span>';
+      dateBlock = '<div><div class="datelbl">' + (j.when ? "Notification" : "Khulegi") + '</div><div class="date" style="font-size:15px">' + (j.when || fmt(j.open)) + '</div></div>';
+    } else if (e.state === "awaited") {
+      pill = '<span class="pill awaited">Notification baaki</span>';
+      dateBlock = '<div><div class="datelbl">Expected</div><div class="date" style="font-size:15px">' + j.when + '</div></div>';
+    } else {
+      pill = '<span class="pill hiring">' + (j.sector === "govt" ? "Listed" : "Hiring") + '</span>';
+      dateBlock = '<div><div class="datelbl">Last date</div><div class="date" style="font-size:15px">Check karo</div></div>';
+    }
+    if (j.kind === "soon" && j.lastText) dateBlock = dateBlock.replace("</div></div>", '</div><div class="note">Last date: ' + j.lastText + '</div></div>');
+    return '<article class="job' + (e.verdict === "no" ? " dim" : "") + '">' +
+      '<div class="main"><h2 class="title">' + j.title + '</h2><div class="org">' + j.org + '</div>' +
+      '<div class="chips">' + chips.map(function (c) { return '<span class="chip">' + c + '</span>'; }).join("") + '</div>' +
+      '<div class="elig ' + e.verdict + '">' + e.msg + '</div>' +
+      '<div class="note">' + j.note + ' <a class="src" href="' + j.link + '" target="_blank" rel="noopener">' + j.src + ' ↗</a></div></div>' +
+      '<div class="side">' + pill + dateBlock + '</div></article>';
+  }).join("");
+}
+
+try {
+  var saved = JSON.parse(localStorage.getItem("nr-profile") || "null");
+  if (saved) {
+    $("qual").value = saved.q; $("age").value = saved.a; $("cat").value = saved.c; $("showAll").checked = !!saved.x;
+    var r = document.querySelector('input[name="sector"][value="' + saved.s + '"]'); if (r) r.checked = true;
+  }
+} catch (e) {}
+["qual", "age", "cat", "showAll"].forEach(function (id) { $(id).addEventListener("input", render); });
+document.querySelectorAll('input[name="sector"]').forEach(function (r) { r.addEventListener("change", render); });
+// jobs.json (scraper ka output) padho. Na mile to upar wali FALLBACK list dikhao.
+fetch("jobs.json", { cache: "no-store" })
+  .then(function (r) { if (!r.ok) throw new Error("no json"); return r.json(); })
+  .then(function (data) {
+    JOBS = Array.isArray(data) ? data : data.jobs;
+    if (data.updated) { $("today").textContent += " · data " + data.updated.replace("T", " "); }
+    render();
+  })
+  .catch(function () { JOBS = FALLBACK; render(); });
+</script>
+</body>
+</html>
+
