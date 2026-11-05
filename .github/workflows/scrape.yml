@@ -21,6 +21,15 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      - name: Gemini key check
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "GEMINI_API_KEY secret set nahi hai. Repo Settings > Secrets and variables > Actions mein jodo."
+            exit 1
+          fi
+
       - name: Run scraper
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -38,9 +47,10 @@ jobs:
 
       - name: Commit jobs.json
         run: |
-          git config user.name "rudrapratap-art"
-          git config user.email "rudrapratap532006@gmail.com"
-          git add jobs.json llm_cache.json
+          git config user.name "naukri-radar-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add jobs.json
+          [ -f llm_cache.json ] && git add llm_cache.json || true
           git diff --cached --quiet && echo "Koi badlav nahi" && exit 0
           git commit -m "Update jobs.json"
           git push
