@@ -107,9 +107,10 @@ def get(url: str):
 def parse_date(text: str):
     """Pehli last-date jaisi date. Returns ISO string ya None."""
     t = text.lower()
-    m = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](20\d{2})", t)
-    if m:
-        d, mo, y = map(int, m.groups())
+    m = re.search(r"(\d{1,2})/(\d{1,2})/(\d{2,4})", t) # Example: 26/11/2026
+if m:
+    d, mo, y = map(int, m.groups())
+    # Saal ko 2 digits se 4 digits mein convert karne ka logic add karein agar zarurat ho
         try:
             return date(y, mo, d).isoformat()
         except ValueError:
