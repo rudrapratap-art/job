@@ -55,7 +55,7 @@ jobs:
           git commit -m "Update jobs.json"
           # Beech mein kisi ne repo badli ho to uske badlav lekar dobara try karo (conflict mein bot ki jobs.json jeetegi)
           for i in 1 2 3; do
-            git pull --rebase -X theirs origin main && git push && exit 0
+            git pull --rebase -X ours origin main && git push && exit 0
             echo "push fail, dobara try ($i)"; sleep 5
           done
           exit 1
