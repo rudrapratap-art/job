@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Search, Briefcase, Calendar, ExternalLink, Building2 } from "lucide-react";
+import { Search, Briefcase, Calendar, ExternalLink, Building2, Clock, Money, Hash, Users } from "lucide-react";
 
 interface Job {
   title: string;
@@ -9,6 +9,13 @@ interface Job {
   url: string;
   source: string;
   date_added: string;
+  qualification: string;
+  age_limit: string;
+  last_date: string;
+  posts: string;
+  salary: string;
+  application_fee: string;
+  selection_process: string;
 }
 
 export default function Home() {
@@ -73,11 +80,11 @@ export default function Home() {
             filteredJobs.map((job, index) => (
               <div
                 key={index}
-                className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
               >
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-blue-700 mb-1">{job.title}</h3>
-                  <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                  <div className="flex flex-wrap gap-3 text-sm text-gray-600 mb-3">
                     <span className="flex items-center gap-1">
                       <Building2 className="w-4 h-4" /> {job.organization}
                     </span>
@@ -88,6 +95,32 @@ export default function Home() {
                       {job.category}
                     </span>
                   </div>
+
+                  {job.posts && (
+                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
+                      <Hash className="w-4 h-4" /> {job.posts}
+                    </div>
+                  )}
+                  {job.age_limit && (
+                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
+                      <Clock className="w-4 h-4" /> Age: {job.age_limit}
+                    </div>
+                  )}
+                  {job.qualification && (
+                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
+                      <Users className="w-4 h-4" /> {job.qualification}
+                    </div>
+                  )}
+                  {job.salary && (
+                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
+                      <Money className="w-4 h-4" /> {job.salary}
+                    </div>
+                  )}
+                  {job.last_date && (
+                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
+                      <Calendar className="w-4 h-4" /> Last Date: {job.last_date}
+                    </div>
+                  )}
                 </div>
                 <a
                   href={job.url}
