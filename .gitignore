@@ -1,0 +1,17 @@
+# Node
+node_modules/
+.next/
+*.log
+npm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
