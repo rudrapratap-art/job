@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Search, Briefcase, Calendar, ExternalLink, Building2, Clock, Money, Hash, Users } from "lucide-react";
+import { Search, Briefcase, Calendar, ExternalLink, Building2, Clock, DollarSign, Hash, Users } from "lucide-react";
 
 interface Job {
   title: string;
@@ -113,7 +113,7 @@ export default function Home() {
                   )}
                   {job.salary && (
                     <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
-                      <Money className="w-4 h-4" /> {job.salary}
+                      <DollarSign className="w-4 h-4" /> {job.salary}
                     </div>
                   )}
                   {job.last_date && (
